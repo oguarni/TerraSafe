@@ -1,0 +1,7 @@
+# Ignore Python virtual environment and all its packages
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+Thumbs.db
