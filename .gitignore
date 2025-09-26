@@ -1,7 +1,16 @@
-# Ignore Python virtual environment and all its packages
+Ignore Python virtual environment and all its packages
 venv/
-__pycache__/
+pycache/
 *.pyc
 .env
+
+OS-specific files
 .DS_Store
 Thumbs.db
+
+Claude-specific files
+.claude/
+claude.md
+
+Local scripts
+take_screenshots.sh
