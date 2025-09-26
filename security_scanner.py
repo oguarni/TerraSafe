@@ -8,7 +8,7 @@ import hcl2
 import re
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 
 def parse_terraform_file(file_path: str) -> Dict[str, Any]:
@@ -28,12 +28,21 @@ def check_open_security_groups(tf_content: Dict[str, Any]) -> List[Dict[str, Any
     if 'resource' not in tf_content:
         return vulnerabilities
     
+    # Handle both list and dict structure
     resources = tf_content['resource']
-    if isinstance(resources, list):
-        for resource_block in resources:
-            for resource_type, resource_configs in resource_block.items():
-                if resource_type == 'aws_security_group':
-                    for name, config in resource_configs.items():
+    if not isinstance(resources, list):
+        resources = [resources]
+    
+    for resource_block in resources:
+        if 'aws_security_group' in resource_block:
+            sg_resources = resource_block['aws_security_group']
+            # Handle both single and multiple resources
+            if not isinstance(sg_resources, list):
+                sg_resources = [sg_resources]
+            
+            for sg in sg_resources:
+                if isinstance(sg, dict):
+                    for name, config in sg.items():
                         if 'ingress' in config:
                             ingress_rules = config['ingress']
                             if not isinstance(ingress_rules, list):
@@ -42,11 +51,12 @@ def check_open_security_groups(tf_content: Dict[str, Any]) -> List[Dict[str, Any
                             for rule in ingress_rules:
                                 cidr_blocks = rule.get('cidr_blocks', [])
                                 if '0.0.0.0/0' in cidr_blocks:
+                                    port = rule.get('from_port', 'any')
                                     vulnerabilities.append({
                                         'severity': 'CRITICAL',
                                         'points': 30,
-                                        'message': f'Open security group access from internet in {name}',
-                                        'resource': f'{resource_type}.{name}'
+                                        'message': f'Open security group - port {port} exposed to internet in {name}',
+                                        'resource': f'aws_security_group.{name}'
                                     })
     
     return vulnerabilities
@@ -56,23 +66,26 @@ def check_hardcoded_secrets(tf_content: Dict[str, Any], raw_content: str = "") -
     """Check for hardcoded passwords and secrets."""
     vulnerabilities = []
     secret_patterns = [
-        r'password\s*=\s*["\'](?!var\.)[^"\']+["\']',
-        r'secret\s*=\s*["\'](?!var\.)[^"\']+["\']',
-        r'api_key\s*=\s*["\'](?!var\.)[^"\']+["\']',
-        r'access_key\s*=\s*["\'](?!var\.)[^"\']+["\']'
+        (r'password\s*=\s*"[^"$]+(?<!var\.)[^"]*"', 'password'),
+        (r'secret\s*=\s*"[^"$]+(?<!var\.)[^"]*"', 'secret'),
+        (r'api_key\s*=\s*"[^"$]+(?<!var\.)[^"]*"', 'API key'),
+        (r'access_key\s*=\s*"[^"$]+(?<!var\.)[^"]*"', 'access key')
     ]
     
     search_content = raw_content if raw_content else json.dumps(tf_content)
     
-    for pattern in secret_patterns:
+    for pattern, secret_type in secret_patterns:
         matches = re.finditer(pattern, search_content, re.IGNORECASE)
         for match in matches:
-            vulnerabilities.append({
-                'severity': 'CRITICAL',
-                'points': 30,
-                'message': 'Hardcoded secret detected',
-                'resource': 'configuration'
-            })
+            # Skip if it contains 'var.'
+            if 'var.' not in match.group():
+                vulnerabilities.append({
+                    'severity': 'CRITICAL',
+                    'points': 30,
+                    'message': f'Hardcoded {secret_type} detected',
+                    'resource': 'configuration'
+                })
+                break  # Count only once per pattern type
     
     return vulnerabilities
 
@@ -85,21 +98,29 @@ def check_public_s3_buckets(tf_content: Dict[str, Any]) -> List[Dict[str, Any]]:
         return vulnerabilities
     
     resources = tf_content['resource']
-    if isinstance(resources, list):
-        for resource_block in resources:
-            for resource_type, resource_configs in resource_block.items():
-                if resource_type == 'aws_s3_bucket_public_access_block':
-                    for name, config in resource_configs.items():
-                        if (config.get('block_public_acls', True) == False or
-                            config.get('block_public_policy', True) == False or
-                            config.get('ignore_public_acls', True) == False or
-                            config.get('restrict_public_buckets', True) == False):
+    if not isinstance(resources, list):
+        resources = [resources]
+    
+    for resource_block in resources:
+        if 'aws_s3_bucket_public_access_block' in resource_block:
+            pab_resources = resource_block['aws_s3_bucket_public_access_block']
+            if not isinstance(pab_resources, list):
+                pab_resources = [pab_resources]
+            
+            for pab in pab_resources:
+                if isinstance(pab, dict):
+                    for name, config in pab.items():
+                        # Check if any public access is allowed
+                        if (not config.get('block_public_acls', True) or
+                            not config.get('block_public_policy', True) or
+                            not config.get('ignore_public_acls', True) or
+                            not config.get('restrict_public_buckets', True)):
                             
                             vulnerabilities.append({
                                 'severity': 'HIGH',
                                 'points': 20,
                                 'message': f'S3 bucket with public access enabled in {name}',
-                                'resource': f'{resource_type}.{name}'
+                                'resource': f'aws_s3_bucket_public_access_block.{name}'
                             })
     
     return vulnerabilities
@@ -113,27 +134,42 @@ def check_unencrypted_storage(tf_content: Dict[str, Any]) -> List[Dict[str, Any]
         return vulnerabilities
     
     resources = tf_content['resource']
-    if isinstance(resources, list):
-        for resource_block in resources:
-            for resource_type, resource_configs in resource_block.items():
-                if resource_type == 'aws_db_instance':
-                    for name, config in resource_configs.items():
+    if not isinstance(resources, list):
+        resources = [resources]
+    
+    for resource_block in resources:
+        # Check RDS instances
+        if 'aws_db_instance' in resource_block:
+            db_resources = resource_block['aws_db_instance']
+            if not isinstance(db_resources, list):
+                db_resources = [db_resources]
+            
+            for db in db_resources:
+                if isinstance(db, dict):
+                    for name, config in db.items():
                         if not config.get('storage_encrypted', False):
                             vulnerabilities.append({
                                 'severity': 'HIGH',
                                 'points': 20,
                                 'message': f'Unencrypted RDS instance in {name}',
-                                'resource': f'{resource_type}.{name}'
+                                'resource': f'aws_db_instance.{name}'
                             })
-                
-                elif resource_type == 'aws_ebs_volume':
-                    for name, config in resource_configs.items():
+        
+        # Check EBS volumes
+        if 'aws_ebs_volume' in resource_block:
+            ebs_resources = resource_block['aws_ebs_volume']
+            if not isinstance(ebs_resources, list):
+                ebs_resources = [ebs_resources]
+            
+            for ebs in ebs_resources:
+                if isinstance(ebs, dict):
+                    for name, config in ebs.items():
                         if not config.get('encrypted', False):
                             vulnerabilities.append({
                                 'severity': 'HIGH',
                                 'points': 20,
                                 'message': f'Unencrypted EBS volume in {name}',
-                                'resource': f'{resource_type}.{name}'
+                                'resource': f'aws_ebs_volume.{name}'
                             })
     
     return vulnerabilities
@@ -155,9 +191,6 @@ def scan_terraform_file(file_path: str) -> Dict[str, Any]:
             raw_content = file.read()
     except Exception:
         raw_content = ""
-    
-    if not tf_content:
-        return {"score": 0, "vulnerabilities": []}
     
     all_vulnerabilities = []
     
@@ -183,13 +216,32 @@ def format_results(results: Dict[str, Any]) -> str:
     critical_count = sum(1 for v in vulnerabilities if v['severity'] == 'CRITICAL')
     high_count = sum(1 for v in vulnerabilities if v['severity'] == 'HIGH')
     
-    output = f"Risk Score: {score}/100\n"
-    output += f"Critical: {critical_count} issues\n"
-    output += f"High: {high_count} issues\n"
-    output += "Details:\n\n"
+    # Color codes for terminal output
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    GREEN = '\033[92m'
+    RESET = '\033[0m'
     
-    for vuln in vulnerabilities:
-        output += f"[{vuln['severity']}] {vuln['message']}\n"
+    # Determine color based on score
+    if score >= 80:
+        score_color = RED
+    elif score >= 50:
+        score_color = YELLOW
+    else:
+        score_color = GREEN
+    
+    output = f"\n{score_color}Risk Score: {score}/100{RESET}\n"
+    output += f"{RED}Critical: {critical_count} issues{RESET}\n"
+    output += f"{YELLOW}High: {high_count} issues{RESET}\n"
+    
+    if vulnerabilities:
+        output += "\nDetails:\n"
+        output += "-" * 50 + "\n"
+        for vuln in vulnerabilities:
+            color = RED if vuln['severity'] == 'CRITICAL' else YELLOW
+            output += f"{color}[{vuln['severity']}]{RESET} {vuln['message']}\n"
+    else:
+        output += f"\n{GREEN}✓ No security issues found!{RESET}\n"
     
     return output
 
@@ -208,6 +260,7 @@ def main():
         print(f"Error: File {file_path} not found")
         sys.exit(1)
     
+    print("\n🔍 Scanning Terraform file for security vulnerabilities...")
     results = scan_terraform_file(file_path)
     print(format_results(results))
 
