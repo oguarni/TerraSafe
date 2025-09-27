@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Demo script for Terraform Security Scanner
-# Generates examples for documentation
+# Shows three different security levels: Critical, Clean, and Mixed
 
 echo "═══════════════════════════════════════════════════════"
 echo "    TERRAFORM SECURITY SCANNER - DEMONSTRATION"
@@ -20,22 +20,30 @@ source venv/bin/activate
 echo "Installing dependencies..."
 pip install -q -r requirements.txt
 
+# Create models directory if it doesn't exist
+mkdir -p models
+
 echo ""
-echo "▶ TEST 1: Scanning VULNERABLE configuration"
+echo "▶ TEST 1: HIGH RISK Configuration (vulnerable.tf)"
 echo "═══════════════════════════════════════════════════════"
 python security_scanner.py test_files/vulnerable.tf
 
 echo ""
-echo "▶ TEST 2: Scanning SECURE configuration"
+echo "▶ TEST 2: SECURE Configuration (secure.tf)"
 echo "═══════════════════════════════════════════════════════"
 python security_scanner.py test_files/secure.tf
 
 echo ""
-echo "▶ TEST 3: Error handling - Non-existent file"
+echo "▶ TEST 3: MEDIUM RISK Configuration (mixed.tf)"
 echo "═══════════════════════════════════════════════════════"
-python security_scanner.py test_files/nonexistent.tf
+python security_scanner.py test_files/mixed.tf
 
 echo ""
 echo "═══════════════════════════════════════════════════════"
-echo "✓ Demo completed! Take screenshots of the output above"
+echo "✓ Security analysis completed for all configurations!"
+echo ""
+echo "Summary:"
+echo "  • vulnerable.tf: Multiple critical issues detected"
+echo "  • secure.tf: Follows security best practices"
+echo "  • mixed.tf: Some improvements recommended"
 echo "═══════════════════════════════════════════════════════"
