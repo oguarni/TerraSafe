@@ -1,5 +1,7 @@
 Ignore Python virtual environment and all its packages
 venv/
+.venv/
+models/
 pycache/
 *.pyc
 .env

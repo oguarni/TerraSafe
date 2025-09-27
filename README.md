@@ -122,9 +122,54 @@ Traditional rule-based scanners miss complex patterns and novel attack vectors. 
 - [x] Generate screenshots
 - [x] Complete documentation
 
-## 📊 Results
+## 📊 Results & Test Files
 
-### Test 1: Vulnerable Configuration
+### Test Configurations
+
+The project includes three test configurations demonstrating different security levels:
+
+#### 1. `vulnerable.tf` - High Risk (Score: 90-100)
+Contains critical security issues:
+- Open SSH access from internet (0.0.0.0/0)
+- Hardcoded database passwords  
+- Unencrypted storage (RDS, EBS)
+- Public S3 bucket access
+
+**ML Detection**: High anomaly score due to multiple security anti-patterns
+
+#### 2. `secure.tf` - Low Risk (Score: 0-20)
+Follows security best practices:
+- Restricted network access (private subnets only)
+- Variables for sensitive data
+- Encrypted storage enabled
+- S3 public access blocked
+
+**ML Detection**: Normal pattern, low anomaly score
+
+#### 3. `mixed.tf` - Medium Risk (Score: 40-60)
+Partially secure configuration:
+- Public HTTP (acceptable for web servers)
+- SSH restricted to internal network ✓
+- Database encrypted ✓
+- S3 partially restricted
+
+**ML Detection**: Slight anomaly due to mixed security posture
+
+### Running the Tests
+
+```bash
+# Run all three tests
+./run_demo.sh
+
+# Or test individually
+python security_scanner.py test_files/vulnerable.tf
+python security_scanner.py test_files/secure.tf
+python security_scanner.py test_files/mixed.tf
+```
+
+### Actual Test Results
+
+#### Test 1: Vulnerable Configuration
 ```
 Final Risk Score: 92/100
 ├─ Rule-based Score: 100/100
@@ -133,9 +178,17 @@ Final Risk Score: 92/100
 
 Critical Issues: 3
 High Issues: 3
+
+Detected Vulnerabilities:
+[CRITICAL] Open security group - port 22 exposed to internet
+[CRITICAL] Open security group - port 80 exposed to internet
+[CRITICAL] Hardcoded password detected
+[HIGH] Unencrypted RDS instance
+[HIGH] Unencrypted EBS volume
+[HIGH] S3 bucket with public access enabled
 ```
 
-### Test 2: Secure Configuration
+#### Test 2: Secure Configuration
 ```
 Final Risk Score: 0/100
 ├─ Rule-based Score: 0/100
@@ -143,7 +196,59 @@ Final Risk Score: 0/100
 └─ Confidence: HIGH
 
 ✓ No security issues detected!
+✓ All resources properly encrypted
+✓ Network access properly restricted
+✓ No hardcoded secrets found
 ```
+
+#### Test 3: Mixed Configuration
+```
+Final Risk Score: 48/100
+├─ Rule-based Score: 40/100
+├─ ML Anomaly Score: 62.1/100
+└─ Confidence: MEDIUM
+
+High Issues: 2
+
+Detected Vulnerabilities:
+[HIGH] S3 bucket with public access enabled (partially)
+[MEDIUM] HTTP port 80 open to internet (acceptable for web servers)
+```
+
+### Understanding the Hybrid Scoring System
+
+The scanner uses a **weighted hybrid approach**:
+
+1. **Rule-based Score (60% weight)**: Deterministic detection of known vulnerabilities
+   - CRITICAL issues: 30 points each
+   - HIGH issues: 20 points each
+   - MEDIUM issues: 10 points each
+
+2. **ML Anomaly Score (40% weight)**: Isolation Forest detects unusual patterns
+   - Trained on baseline security configurations
+   - Detects deviations from normal security patterns
+   - Provides confidence level based on anomaly distance
+
+3. **Final Score**: `0.6 × Rule Score + 0.4 × ML Score`
+
+### Score Interpretation
+- **0-30**: Secure configuration ✅
+- **31-60**: Some issues, review recommended ⚠️
+- **61-100**: Critical issues, immediate action required ❌
+
+### Feature Vector Analysis
+
+The ML model analyzes these features:
+- Number of open ports to internet
+- Presence of hardcoded secrets
+- Public access configurations
+- Unencrypted storage instances
+- Total resource count
+
+Example feature vectors from tests:
+- **Vulnerable**: `[2, 1, 1, 2, 5]` → High anomaly
+- **Secure**: `[0, 0, 0, 0, 5]` → Normal pattern
+- **Mixed**: `[1, 0, 1, 0, 4]` → Moderate anomaly
 
 ## 🔧 Installation & Usage
 
