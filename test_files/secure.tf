@@ -2,7 +2,8 @@
 # This file follows security best practices
 
 resource "aws_security_group" "web_sg" {
-  name_description = "Web server security group"
+  name        = "web-security-group"
+  description = "Web server security group"
   
   ingress {
     from_port   = 80
@@ -20,16 +21,17 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_db_instance" "main_db" {
-  allocated_storage    = 20
-  storage_type         = "gp2"
-  engine               = "mysql"
-  engine_version       = "8.0"
-  instance_class       = "db.t3.micro"
-  name                 = "mydb"
-  username             = "admin"
-  password             = var.db_password  # Using variable instead of hardcoded
-  storage_encrypted    = true             # Encryption enabled
+  allocated_storage       = 20
+  storage_type           = "gp2"
+  engine                 = "mysql"
+  engine_version         = "8.0"
+  instance_class         = "db.t3.micro"
+  db_name                = "mydb"
+  username               = "admin"
+  password               = var.db_password  # Using variable instead of hardcoded
+  storage_encrypted      = true             # Encryption enabled
   backup_retention_period = 7
+  skip_final_snapshot    = false
   
   tags = {
     Environment = "production"
@@ -43,7 +45,7 @@ resource "aws_ebs_volume" "data_volume" {
   encrypted         = true  # Encryption enabled
   
   tags = {
-    Name = "SecureDataVolume"
+    Name      = "SecureDataVolume"
     Encrypted = "true"
   }
 }
@@ -62,7 +64,7 @@ resource "aws_s3_bucket" "main_bucket" {
   
   tags = {
     Environment = "production"
-    Security = "enhanced"
+    Security    = "enhanced"
   }
 }
 

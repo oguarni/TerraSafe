@@ -1,0 +1,27 @@
+{
+  "file": "test_files/mixed.tf",
+  "score": 31,
+  "rule_based_score": 20,
+  "ml_score": 48.53911188982953,
+  "confidence": "LOW",
+  "vulnerabilities": [
+    {
+      "severity": "MEDIUM",
+      "message": "[MEDIUM] HTTP/HTTPS port 80 open to internet",
+      "resource": "app_sg",
+      "remediation": "Consider using a CDN or WAF for public web services"
+    },
+    {
+      "severity": "MEDIUM",
+      "message": "[MEDIUM] S3 bucket with partial public access",
+      "resource": "app_bucket",
+      "remediation": "Review and restrict public access settings"
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0
+  }
+}
