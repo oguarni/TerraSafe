@@ -1,12 +1,5 @@
-═══════════════════════════════════════════════════════
-    TERRAFORM SECURITY SCANNER - DEMONSTRATION
-═══════════════════════════════════════════════════════
-Installing dependencies...
-
-▶ TEST 1: HIGH RISK Configuration (vulnerable.tf)
-═══════════════════════════════════════════════════════
 🔐 TerraSafe - Intelligent Terraform Security Scanner
-🤖 Using hybrid approach: Rules + ML Anomaly Detection
+🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
 
 ============================================================
 🔍 TERRAFORM SECURITY SCAN RESULTS
@@ -17,8 +10,14 @@ Installing dependencies...
 ❌ CRITICAL RISK
 [91m📊 Final Risk Score: 80/100[0m
 ├─ Rule-based Score: 100/100
-├─ ML Anomaly Score: 51.2/100
+├─ ML Anomaly Score: 52.4/100
 └─ Confidence: LOW
+
+🔬 Feature Analysis:
+   Open Ports: 1
+   Hardcoded Secrets: 1
+   Public Access: 1
+   Unencrypted Storage: 2
 
 📋 Issue Summary:
    [91m🔴 Critical: 2[0m
@@ -55,11 +54,8 @@ Installing dependencies...
 ============================================================
 
 📄 Detailed results saved to scan_results.json
-
-▶ TEST 2: SECURE Configuration (secure.tf)
-═══════════════════════════════════════════════════════
 🔐 TerraSafe - Intelligent Terraform Security Scanner
-🤖 Using hybrid approach: Rules + ML Anomaly Detection
+🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
 
 ============================================================
 🔍 TERRAFORM SECURITY SCAN RESULTS
@@ -68,21 +64,27 @@ Installing dependencies...
 ------------------------------------------------------------
 
 ✅ LOW RISK
-[92m📊 Final Risk Score: 18/100[0m
+[92m📊 Final Risk Score: 17/100[0m
 ├─ Rule-based Score: 0/100
-├─ ML Anomaly Score: 46.1/100
-└─ Confidence: LOW
+├─ ML Anomaly Score: 43.3/100
+└─ Confidence: MEDIUM
+
+🔬 Feature Analysis:
+   Open Ports: 0
+   Hardcoded Secrets: 0
+   Public Access: 0
+   Unencrypted Storage: 0
 
 [92m✅ No security issues detected![0m
+✓ All resources properly configured
+✓ Encryption enabled where required
+✓ Network access properly restricted
 
 ============================================================
 
 📄 Detailed results saved to scan_results.json
-
-▶ TEST 3: MEDIUM RISK Configuration (mixed.tf)
-═══════════════════════════════════════════════════════
 🔐 TerraSafe - Intelligent Terraform Security Scanner
-🤖 Using hybrid approach: Rules + ML Anomaly Detection
+🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
 
 ============================================================
 🔍 TERRAFORM SECURITY SCAN RESULTS
@@ -91,10 +93,16 @@ Installing dependencies...
 ------------------------------------------------------------
 
 ✅ LOW RISK
-[92m📊 Final Risk Score: 31/100[0m
+[92m📊 Final Risk Score: 30/100[0m
 ├─ Rule-based Score: 20/100
-├─ ML Anomaly Score: 48.5/100
+├─ ML Anomaly Score: 46.8/100
 └─ Confidence: LOW
+
+🔬 Feature Analysis:
+   Open Ports: 0
+   Hardcoded Secrets: 0
+   Public Access: 1
+   Unencrypted Storage: 0
 
 📋 Issue Summary:
    [94m🟡 Medium: 2[0m
@@ -113,12 +121,3 @@ Installing dependencies...
 ============================================================
 
 📄 Detailed results saved to scan_results.json
-
-═══════════════════════════════════════════════════════
-✓ Security analysis completed for all configurations!
-
-Summary:
-  • vulnerable.tf: Multiple critical issues detected
-  • secure.tf: Follows security best practices
-  • mixed.tf: Some improvements recommended
-═══════════════════════════════════════════════════════

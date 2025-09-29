@@ -1,0 +1,101 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#333">TerraSafe - Hybrid Security Scanner Architecture</text>
+  
+  <!-- Input Layer -->
+  <rect x="50" y="60" width="150" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+  <text x="125" y="90" text-anchor="middle" font-size="14" fill="#333">Terraform Files</text>
+  <text x="125" y="105" text-anchor="middle" font-size="12" fill="#666">(.tf)</text>
+  
+  <!-- Parser -->
+  <rect x="250" y="60" width="120" height="50" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+  <text x="310" y="90" text-anchor="middle" font-size="14" fill="#333">HCL2 Parser</text>
+  
+  <!-- Arrow from Input to Parser -->
+  <path d="M 200 85 L 250 85" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Feature Extraction -->
+  <rect x="420" y="60" width="150" height="50" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+  <text x="495" y="85" text-anchor="middle" font-size="14" fill="#333">Feature</text>
+  <text x="495" y="100" text-anchor="middle" font-size="14" fill="#333">Extraction</text>
+  
+  <!-- Arrow from Parser to Feature Extraction -->
+  <path d="M 370 85 L 420 85" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Processing Layer - Rule Engine -->
+  <g transform="translate(150, 160)">
+    <rect width="200" height="120" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="5"/>
+    <text x="100" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">Rule Engine (60%)</text>
+    <text x="100" y="50" text-anchor="middle" font-size="12" fill="#666">• Security Groups Check</text>
+    <text x="100" y="68" text-anchor="middle" font-size="12" fill="#666">• Hardcoded Secrets</text>
+    <text x="100" y="86" text-anchor="middle" font-size="12" fill="#666">• Encryption Status</text>
+    <text x="100" y="104" text-anchor="middle" font-size="12" fill="#666">• Public S3 Access</text>
+  </g>
+  
+  <!-- Processing Layer - ML Model -->
+  <g transform="translate(450, 160)">
+    <rect width="200" height="120" fill="#fce4ec" stroke="#c2185b" stroke-width="2" rx="5"/>
+    <text x="100" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">ML Model (40%)</text>
+    <text x="100" y="50" text-anchor="middle" font-size="12" fill="#666">Isolation Forest</text>
+    <text x="100" y="68" text-anchor="middle" font-size="12" fill="#666">• Anomaly Detection</text>
+    <text x="100" y="86" text-anchor="middle" font-size="12" fill="#666">• Pattern Analysis</text>
+    <text x="100" y="104" text-anchor="middle" font-size="12" fill="#666">• Confidence Score</text>
+  </g>
+  
+  <!-- Arrows to Processing -->
+  <path d="M 495 110 L 250 160" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M 495 110 L 550 160" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Score Aggregator -->
+  <rect x="300" y="330" width="200" height="60" fill="#fff8e1" stroke="#ffa000" stroke-width="2" rx="5"/>
+  <text x="400" y="355" text-anchor="middle" font-size="14" font-weight="bold" fill="#333">Risk Score Aggregator</text>
+  <text x="400" y="375" text-anchor="middle" font-size="12" fill="#666">0.6 × Rules + 0.4 × ML</text>
+  
+  <!-- Arrows to Aggregator -->
+  <path d="M 250 280 L 350 330" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M 550 280 L 450 330" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Output Layer -->
+  <g transform="translate(200, 440)">
+    <rect width="400" height="100" fill="#f5f5f5" stroke="#616161" stroke-width="2" rx="5"/>
+    <text x="200" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">Output</text>
+    <text x="100" y="50" text-anchor="middle" font-size="12" fill="#666">• Risk Score (0-100)</text>
+    <text x="100" y="70" text-anchor="middle" font-size="12" fill="#666">• Vulnerability List</text>
+    <text x="300" y="50" text-anchor="middle" font-size="12" fill="#666">• Severity Classification</text>
+    <text x="300" y="70" text-anchor="middle" font-size="12" fill="#666">• Remediation Tips</text>
+    <text x="200" y="90" text-anchor="middle" font-size="12" fill="#666">• JSON Report + Console Output</text>
+  </g>
+  
+  <!-- Arrow to Output -->
+  <path d="M 400 390 L 400 440" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Model Persistence -->
+  <g transform="translate(680, 180)">
+    <rect width="100" height="80" fill="#e1f5fe" stroke="#0288d1" stroke-width="2" rx="5"/>
+    <text x="50" y="25" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Model Store</text>
+    <text x="50" y="45" text-anchor="middle" font-size="10" fill="#666">• .pkl files</text>
+    <text x="50" y="60" text-anchor="middle" font-size="10" fill="#666">• Joblib</text>
+  </g>
+  
+  <!-- Bidirectional arrow for model persistence -->
+  <path d="M 650 220 L 680 220" stroke="#666" stroke-width="2" stroke-dasharray="5,5"/>
+  <path d="M 680 220 L 650 220" stroke="#666" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 560)">
+    <text font-size="12" font-weight="bold" fill="#333">Legend:</text>
+    <rect x="100" y="-10" width="40" height="15" fill="#e8f5e9" stroke="#4caf50"/>
+    <text x="145" y="0" font-size="11" fill="#666">Deterministic</text>
+    <rect x="230" y="-10" width="40" height="15" fill="#fce4ec" stroke="#c2185b"/>
+    <text x="275" y="0" font-size="11" fill="#666">Probabilistic</text>
+    <rect x="360" y="-10" width="40" height="15" fill="#fff8e1" stroke="#ffa000"/>
+    <text x="405" y="0" font-size="11" fill="#666">Hybrid</text>
+  </g>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#666"/>
+    </marker>
+  </defs>
+</svg>
