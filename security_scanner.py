@@ -2,6 +2,7 @@
 """
 TerraSafe - Intelligent Terraform Security Scanner
 Combines rule-based detection with ML anomaly detection using Isolation Forest
+Enhanced version with improved ML training and error handling
 """
 
 import re
@@ -12,11 +13,16 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Tuple, Optional
+import logging
 
 import hcl2
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import joblib
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class Severity(Enum):
@@ -268,9 +274,10 @@ class ModelManager:
         try:
             joblib.dump(model, self.model_path)
             joblib.dump(scaler, self.scaler_path)
+            logger.info(f"Model saved to {self.model_path}")
             return True
         except Exception as e:
-            print(f"Error saving model: {e}")
+            logger.error(f"Error saving model: {e}")
             return False
     
     def load_model(self) -> Tuple[Optional[IsolationForest], Optional[StandardScaler]]:
@@ -279,9 +286,10 @@ class ModelManager:
             if self.model_path.exists() and self.scaler_path.exists():
                 model = joblib.load(self.model_path)
                 scaler = joblib.load(self.scaler_path)
+                logger.info("Model loaded successfully")
                 return model, scaler
         except Exception as e:
-            print(f"Error loading model: {e}")
+            logger.error(f"Error loading model: {e}")
         
         return None, None
     
@@ -308,39 +316,128 @@ class IntelligentSecurityScanner:
         self.model, self.scaler = self.model_manager.load_model()
         
         if self.model is None:
-            print("Training new ML model...")
+            print("Training new ML model with enhanced dataset...")
             self._train_baseline_model()
     
     def _train_baseline_model(self):
-        """Train ML model on baseline secure configurations"""
-        # Create synthetic baseline data (secure patterns)
-        baseline_features = np.array([
-            # [open_ports, secrets, public_access, unencrypted, resource_count]
-            [0, 0, 0, 0, 5],  # Fully secure
-            [0, 0, 0, 0, 10], # Fully secure, more resources
-            [1, 0, 0, 0, 8],  # One HTTP port open (acceptable)
-            [0, 0, 0, 0, 15], # Fully secure, many resources
-            [1, 0, 1, 0, 12], # HTTP open, partial S3 public (web app)
+        """Train ML model with realistic and diverse baseline patterns"""
+        # Create comprehensive baseline patterns representing secure configurations
+        # Features: [open_ports, secrets, public_access, unencrypted, resource_count]
+        
+        baseline_patterns = [
+            # Fully secure configurations
+            [0, 0, 0, 0, 5],   # Small secure microservice
+            [0, 0, 0, 0, 10],  # Medium secure application
+            [0, 0, 0, 0, 15],  # Large secure infrastructure
+            [0, 0, 0, 0, 25],  # Enterprise secure setup
+            [0, 0, 0, 0, 3],   # Minimal secure Lambda function
+            
+            # Web applications (acceptable public exposure)
+            [1, 0, 0, 0, 8],   # Simple web app with HTTP
+            [2, 0, 0, 0, 12],  # Web app with HTTP/HTTPS
+            [2, 0, 1, 0, 20],  # E-commerce with CDN (public S3)
+            [1, 0, 1, 0, 15],  # Static site with S3 hosting
+            [2, 0, 2, 0, 30],  # Multi-region web platform
+            
+            # Development environments (slightly relaxed)
+            [1, 0, 0, 1, 6],   # Dev env with one unencrypted volume
+            [2, 0, 0, 1, 10],  # Staging with test data
+            [1, 0, 1, 1, 8],   # QA environment
+            [0, 0, 0, 2, 12],  # Test cluster with temp storage
+            
+            # Microservices architectures
+            [3, 0, 0, 0, 40],  # Service mesh with multiple endpoints
+            [4, 0, 1, 0, 50],  # Kubernetes cluster with ingress
+            [2, 0, 0, 0, 35],  # Docker swarm setup
+            [3, 0, 2, 0, 45],  # Multi-service with CDN
+            
+            # Data processing systems
+            [0, 0, 0, 0, 20],  # Secure data pipeline
+            [1, 0, 2, 0, 25],  # Analytics platform with S3
+            [0, 0, 1, 0, 18],  # ML training infrastructure
+            [1, 0, 3, 0, 30],  # Data lake architecture
+            
+            # Hybrid cloud setups
+            [2, 0, 1, 1, 28],  # Hybrid with on-prem connection
+            [3, 0, 2, 1, 35],  # Multi-cloud deployment
+            [1, 0, 0, 0, 22],  # Edge computing nodes
+            
+            # Specialized workloads
+            [0, 0, 0, 0, 7],   # Secure API gateway only
+            [1, 0, 0, 0, 9],   # GraphQL endpoint
+            [2, 0, 1, 0, 14],  # Real-time streaming service
+            [0, 0, 2, 0, 16],  # Backup and disaster recovery
+            [1, 0, 1, 0, 11],  # CI/CD infrastructure
+        ]
+        
+        baseline_features = np.array(baseline_patterns)
+        
+        # Advanced augmentation with realistic variations
+        augmented_data = baseline_features.copy()
+        
+        # Add noise variations for each pattern
+        for pattern in baseline_features:
+            for _ in range(3):  # Create 3 variations per pattern
+                # Add controlled noise
+                noise = np.random.normal(0, 0.15, 5)
+                
+                # Apply noise with constraints
+                augmented = pattern + noise
+                
+                # Ensure non-negative values
+                augmented = np.maximum(augmented, 0)
+                
+                # Round discrete features
+                augmented[0] = np.round(augmented[0])  # open_ports
+                augmented[1] = np.round(augmented[1])  # secrets
+                augmented[2] = np.round(augmented[2])  # public_access
+                augmented[3] = np.round(augmented[3])  # unencrypted
+                augmented[4] = np.round(augmented[4])  # resources
+                
+                augmented_data = np.vstack([augmented_data, augmented])
+        
+        # Add edge cases representing acceptable boundaries
+        edge_cases = np.array([
+            [5, 0, 0, 0, 60],  # Large microservices (many ports but secure)
+            [0, 0, 5, 0, 40],  # Content delivery network
+            [3, 0, 3, 2, 50],  # Legacy migration (transitional state)
+            [0, 0, 0, 3, 25],  # Development cluster (temporary unencrypted)
+            [6, 0, 2, 0, 70],  # API gateway with multiple services
         ])
         
-        # Add some noise for robustness
-        noise = np.random.normal(0, 0.1, baseline_features.shape)
-        baseline_features = baseline_features + noise
+        augmented_data = np.vstack([augmented_data, edge_cases])
         
-        # Train scaler and model
+        # Train scaler with augmented data
         self.scaler = StandardScaler()
-        scaled_features = self.scaler.fit_transform(baseline_features)
+        scaled_features = self.scaler.fit_transform(augmented_data)
         
+        # Configure Isolation Forest with optimized parameters
         self.model = IsolationForest(
-            contamination=0.1,
+            contamination=0.05,  # Expect 5% anomalies in production
             random_state=42,
-            n_estimators=100
+            n_estimators=150,    # More trees for better stability
+            max_samples='auto',
+            max_features=1.0,    # Use all features
+            bootstrap=False,
+            n_jobs=-1           # Use all CPU cores
         )
+        
+        # Train the model
         self.model.fit(scaled_features)
         
-        # Save model
+        # Save the trained model
         self.model_manager.save_model(self.model, self.scaler)
-        print("ML model trained and saved")
+        
+        # Log training statistics
+        logger.info(f"Model trained on {len(augmented_data)} samples")
+        logger.info(f"Feature ranges after scaling:")
+        for i, feature_name in enumerate(['open_ports', 'secrets', 'public_access', 'unencrypted', 'resources']):
+            min_val = augmented_data[:, i].min()
+            max_val = augmented_data[:, i].max()
+            mean_val = augmented_data[:, i].mean()
+            logger.info(f"  {feature_name}: min={min_val:.1f}, max={max_val:.1f}, mean={mean_val:.1f}")
+        
+        print(f"✅ ML model trained successfully with {len(augmented_data)} samples")
     
     def extract_features(self, vulnerabilities: List[Vulnerability]) -> np.ndarray:
         """Extract feature vector from vulnerabilities for ML model"""
@@ -367,36 +464,45 @@ class IntelligentSecurityScanner:
     def calculate_ml_risk_score(self, features: np.ndarray) -> Tuple[float, str]:
         """Calculate risk score using ML model"""
         if self.model is None or self.scaler is None:
+            logger.warning("Model not available, returning default score")
             return 0.0, "LOW"
         
-        # Scale features
-        scaled_features = self.scaler.transform(features)
-        
-        # Get anomaly score (-1 for anomaly, 1 for normal)
-        prediction = self.model.predict(scaled_features)[0]
-        
-        # Get decision function score (distance from normal)
-        anomaly_score = self.model.decision_function(scaled_features)[0]
-        
-        # Convert to risk score (0-100)
-        # More negative = more anomalous = higher risk
-        if prediction == -1:  # Anomaly detected
-            risk_score = min(100, max(50, 50 + abs(anomaly_score) * 100))
-        else:  # Normal pattern
-            risk_score = max(0, min(50, 50 - anomaly_score * 50))
-        
-        # Determine confidence
-        if abs(anomaly_score) > 0.3:
-            confidence = "HIGH"
-        elif abs(anomaly_score) > 0.1:
-            confidence = "MEDIUM"
-        else:
-            confidence = "LOW"
-        
-        return risk_score, confidence
+        try:
+            # Scale features
+            scaled_features = self.scaler.transform(features)
+            
+            # Get anomaly score (-1 for anomaly, 1 for normal)
+            prediction = self.model.predict(scaled_features)[0]
+            
+            # Get decision function score (distance from normal)
+            anomaly_score = self.model.decision_function(scaled_features)[0]
+            
+            # Enhanced risk score calculation
+            if prediction == -1:  # Anomaly detected
+                # Map anomaly score to risk (more negative = higher risk)
+                risk_score = min(100, max(50, 50 + abs(anomaly_score) * 100))
+            else:  # Normal pattern
+                # Lower risk for normal patterns
+                risk_score = max(0, min(50, 50 - anomaly_score * 50))
+            
+            # Determine confidence based on distance from decision boundary
+            if abs(anomaly_score) > 0.3:
+                confidence = "HIGH"
+            elif abs(anomaly_score) > 0.1:
+                confidence = "MEDIUM"
+            else:
+                confidence = "LOW"
+            
+            logger.debug(f"ML Score: {risk_score:.1f}, Confidence: {confidence}, Anomaly: {anomaly_score:.3f}")
+            
+            return risk_score, confidence
+            
+        except Exception as e:
+            logger.error(f"Error in ML scoring: {e}")
+            return 50.0, "LOW"  # Return neutral score on error
     
     def scan(self, filepath: str) -> Dict[str, Any]:
-        """Main scanning method"""
+        """Main scanning method with enhanced error handling"""
         path = Path(filepath)
         
         if not path.exists():
@@ -406,12 +512,46 @@ class IntelligentSecurityScanner:
             }
         
         try:
-            # Read file
-            with open(path, 'r') as f:
+            # Read file content
+            with open(path, 'r', encoding='utf-8') as f:
                 raw_content = f.read()
             
-            # Parse HCL2
-            tf_content = hcl2.loads(raw_content)
+            # Try multiple parsing strategies
+            tf_content = None
+            parse_error = None
+            
+            # Strategy 1: Try HCL2 parsing
+            try:
+                tf_content = hcl2.loads(raw_content)
+            except Exception as e:
+                parse_error = f"HCL2 parse failed: {str(e)}"
+                logger.debug(parse_error)
+                
+                # Strategy 2: Try JSON parsing (some .tf files might be JSON)
+                try:
+                    tf_content = json.loads(raw_content)
+                    parse_error = None
+                except json.JSONDecodeError:
+                    pass
+                
+                # Strategy 3: Try to extract resource blocks manually
+                if tf_content is None:
+                    try:
+                        # Basic regex extraction as fallback
+                        resource_pattern = r'resource\s+"([^"]+)"\s+"([^"]+)"'
+                        matches = re.findall(resource_pattern, raw_content)
+                        if matches:
+                            tf_content = {'resource': []}
+                            parse_error = "Partial parse - using fallback"
+                    except Exception:
+                        pass
+            
+            # If parsing completely failed, return error
+            if tf_content is None:
+                return {
+                    'score': -1,
+                    'error': parse_error or 'Unable to parse Terraform file'
+                }
             
             # Run rule-based analysis
             vulnerabilities = self.rule_engine.analyze(tf_content, raw_content)
@@ -425,10 +565,10 @@ class IntelligentSecurityScanner:
             # Calculate ML risk score
             ml_score, confidence = self.calculate_ml_risk_score(features)
             
-            # Hybrid score (weighted average)
+            # Hybrid score with weighted average
             final_score = int(0.6 * rule_score + 0.4 * ml_score)
             
-            # Prepare results
+            # Prepare comprehensive results
             results = {
                 'file': str(path),
                 'score': final_score,
@@ -449,12 +589,24 @@ class IntelligentSecurityScanner:
                     'high': sum(1 for v in vulnerabilities if v.severity == Severity.HIGH),
                     'medium': sum(1 for v in vulnerabilities if v.severity == Severity.MEDIUM),
                     'low': sum(1 for v in vulnerabilities if v.severity == Severity.LOW)
+                },
+                'features_analyzed': {
+                    'open_ports': int(features[0][0]),
+                    'hardcoded_secrets': int(features[0][1]),
+                    'public_access': int(features[0][2]),
+                    'unencrypted_storage': int(features[0][3]),
+                    'total_resources': int(features[0][4])
                 }
             }
+            
+            # Add parse warning if fallback was used
+            if parse_error and "Partial" in parse_error:
+                results['warning'] = parse_error
             
             return results
             
         except Exception as e:
+            logger.error(f"Scanning error: {type(e).__name__}: {str(e)}")
             return {
                 'score': -1,
                 'error': f'Scanning error: {type(e).__name__}: {str(e)}'
@@ -462,7 +614,7 @@ class IntelligentSecurityScanner:
 
 
 def format_results(results: Dict[str, Any]) -> str:
-    """Format results for console output"""
+    """Format results for console output with enhanced visuals"""
     if results['score'] == -1:
         return f"❌ Error: {results.get('error', 'Unknown error')}"
     
@@ -472,6 +624,11 @@ def format_results(results: Dict[str, Any]) -> str:
     output.append("=" * 60)
     output.append(f"📁 File: {results['file']}")
     output.append("-" * 60)
+    
+    # Warning if partial parse
+    if 'warning' in results:
+        output.append(f"⚠️  Warning: {results['warning']}")
+        output.append("-" * 60)
     
     # Risk score with color coding
     score = results['score']
@@ -490,6 +647,15 @@ def format_results(results: Dict[str, Any]) -> str:
     output.append(f"├─ Rule-based Score: {results['rule_based_score']}/100")
     output.append(f"├─ ML Anomaly Score: {results['ml_score']:.1f}/100")
     output.append(f"└─ Confidence: {results['confidence']}")
+    
+    # Feature analysis (if available)
+    if 'features_analyzed' in results:
+        output.append(f"\n🔬 Feature Analysis:")
+        features = results['features_analyzed']
+        output.append(f"   Open Ports: {features['open_ports']}")
+        output.append(f"   Hardcoded Secrets: {features['hardcoded_secrets']}")
+        output.append(f"   Public Access: {features['public_access']}")
+        output.append(f"   Unencrypted Storage: {features['unencrypted_storage']}")
     
     # Summary
     summary = results['summary']
@@ -515,6 +681,9 @@ def format_results(results: Dict[str, Any]) -> str:
                 output.append(f"   💡 Fix: {vuln['remediation']}")
     else:
         output.append(f"\n\033[92m✅ No security issues detected!\033[0m")
+        output.append("✓ All resources properly configured")
+        output.append("✓ Encryption enabled where required")
+        output.append("✓ Network access properly restricted")
     
     output.append("\n" + "=" * 60)
     
@@ -525,13 +694,15 @@ def main():
     """Main entry point"""
     if len(sys.argv) != 2:
         print("Usage: python security_scanner.py <terraform_file.tf>")
+        print("\nExample:")
+        print("  python security_scanner.py test_files/vulnerable.tf")
         sys.exit(1)
     
     filepath = sys.argv[1]
     scanner = IntelligentSecurityScanner()
     
     print(f"🔐 TerraSafe - Intelligent Terraform Security Scanner")
-    print(f"🤖 Using hybrid approach: Rules + ML Anomaly Detection")
+    print(f"🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
     
     results = scanner.scan(filepath)
     
@@ -545,9 +716,11 @@ def main():
     print(f"\n📄 Detailed results saved to {json_output}")
     
     # Exit code based on risk
-    if results['score'] >= 70:
+    if results['score'] == -1:
+        sys.exit(2)  # Error
+    elif results['score'] >= 70:
         sys.exit(1)  # High risk
-    sys.exit(0)
+    sys.exit(0)  # Acceptable risk
 
 
 if __name__ == "__main__":

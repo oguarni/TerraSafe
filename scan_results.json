@@ -1,8 +1,8 @@
 {
   "file": "test_files/mixed.tf",
-  "score": 31,
+  "score": 30,
   "rule_based_score": 20,
-  "ml_score": 48.53911188982953,
+  "ml_score": 46.767713247675445,
   "confidence": "LOW",
   "vulnerabilities": [
     {
@@ -23,5 +23,12 @@
     "high": 0,
     "medium": 2,
     "low": 0
+  },
+  "features_analyzed": {
+    "open_ports": 0,
+    "hardcoded_secrets": 0,
+    "public_access": 1,
+    "unencrypted_storage": 0,
+    "total_resources": 5
   }
 }
