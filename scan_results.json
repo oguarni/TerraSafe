@@ -7,12 +7,14 @@
   "vulnerabilities": [
     {
       "severity": "MEDIUM",
+      "points": 10,
       "message": "[MEDIUM] HTTP/HTTPS port 80 open to internet",
       "resource": "app_sg",
       "remediation": "Consider using a CDN or WAF for public web services"
     },
     {
       "severity": "MEDIUM",
+      "points": 10,
       "message": "[MEDIUM] S3 bucket with partial public access",
       "resource": "app_bucket",
       "remediation": "Review and restrict public access settings"
@@ -30,5 +32,9 @@
     "public_access": 1,
     "unencrypted_storage": 0,
     "total_resources": 5
+  },
+  "performance": {
+    "scan_time_seconds": 0.045,
+    "file_size_kb": 1.65
   }
 }
