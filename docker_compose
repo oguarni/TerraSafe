@@ -10,6 +10,7 @@ services:
     container_name: terrasafe-scanner
     volumes:
       - ./test_files:/app/test_files:ro
+      # Optional output directory to collect all per-scan JSON artifacts
       - ./scan_results:/app/results
     environment:
       - LOG_LEVEL=INFO
@@ -123,7 +124,8 @@ integration-tests:
     - python test_runner.py --integration
   artifacts:
     paths:
-      - scan_results.json
+      - scan_results_*.json
+      - scan_history.json
     expire_in: 1 week
 
 security-scan:
@@ -136,7 +138,8 @@ security-scan:
   allow_failure: true
   artifacts:
     paths:
-      - scan_results.json
+      - scan_results_*.json
+      - scan_history.json
     when: always
 
 docker-build:
